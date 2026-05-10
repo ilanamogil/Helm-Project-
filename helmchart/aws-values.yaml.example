@@ -1,0 +1,10 @@
+# Template for aws-values.yaml. Copy to aws-values.yaml and fill in real values.
+# Never commit aws-values.yaml — it is listed in .gitignore.
+#
+# In production, prefer a Kubernetes Secret + IAM Role for Service Accounts (IRSA)
+# over storing keys in a values file at all.
+
+aws:
+  region: us-east-1
+  accessKeyId: REPLACE_WITH_YOUR_ACCESS_KEY_ID
+  secretAccessKey: REPLACE_WITH_YOUR_SECRET_ACCESS_KEY

@@ -1,0 +1,21 @@
+# Local AWS credentials values file — never commit
+aws-values.yaml
+helmchart/aws-values.yaml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Editor / OS
+.idea/
+.vscode/
+.claude/
+.DS_Store
+Thumbs.db
+
+# Helm
+*.tgz
+charts/
