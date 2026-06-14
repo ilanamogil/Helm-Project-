@@ -1,2 +1,2 @@
-prometheus_client
 flask
+boto3
