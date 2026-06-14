@@ -33,19 +33,20 @@ def home():
                 "Public IP": instance.get("PublicIpAddress", "N/A")
             })
 
-    # KNOWN BUG (Exam Section 3): the variables `vpcs`, `lbs` and `amis`
-    # are used below but never defined - the AWS describe_* calls are
-    # missing. This raises a NameError and the page fails to render.
-    # As instructed, the bug is left in place at this stage and fixed
-    # in Section 4 on a dedicated feature branch.
+    # Section 4 fix: the original code referenced `vpcs`, `lbs` and `amis`
+    # without ever calling the AWS APIs that populate them, which raised a
+    # NameError. The three describe_* calls below resolve the bug.
 
     # Fetch VPCs
+    vpcs = ec2_client.describe_vpcs()
     vpc_data = [{"VPC ID": vpc["VpcId"], "CIDR": vpc["CidrBlock"]} for vpc in vpcs["Vpcs"]]
 
     # Fetch Load Balancers
+    lbs = elb_client.describe_load_balancers()
     lb_data = [{"LB Name": lb["LoadBalancerName"], "DNS Name": lb["DNSName"]} for lb in lbs["LoadBalancers"]]
 
     # Fetch AMIs (only owned by the account)
+    amis = ec2_client.describe_images(Owners=["self"])
     ami_data = [{"AMI ID": ami["ImageId"], "Name": ami.get("Name", "N/A")} for ami in amis["Images"]]
 
     # Render the result in a simple table
