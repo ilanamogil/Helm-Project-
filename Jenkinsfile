@@ -102,6 +102,40 @@ pipeline {
                 '''
             }
         }
+
+        // ----- GitOps: connect Jenkins (CI) to ArgoCD (CD) -----
+        // Jenkins never touches the cluster directly. It only commits the new
+        // image tag into the GitOps repo; ArgoCD watches that repo and syncs.
+        //
+        // Credentials:
+        //   Create a Jenkins credential of type "Secret text" with the ID
+        //   "github-token" holding a GitHub Personal Access Token (repo scope).
+        stage('Update GitOps Repo (ArgoCD)') {
+            environment {
+                GIT_TOKEN = credentials('github-token')
+                GITOPS_REPO = 'github.com/ilanamogil/gitops-repo.git'
+                DEPLOY_ENV  = 'dev'
+            }
+            steps {
+                sh '''
+                    rm -rf gitops-repo
+                    git clone https://x-access-token:${GIT_TOKEN}@${GITOPS_REPO}
+                    cd gitops-repo
+
+                    VALUES="flask-aws-monitor/${DEPLOY_ENV}/values.yaml"
+                    echo "===== Bumping image tag in ${VALUES} to ${IMAGE_TAG} ====="
+                    sed -i "s|^  tag:.*|  tag: \\"${IMAGE_TAG}\\"|" "$VALUES"
+                    grep -A1 "^image:" "$VALUES"
+
+                    git config user.email "jenkins@example.com"
+                    git config user.name  "Jenkins CI"
+                    git add "$VALUES"
+                    git commit -m "ci: deploy ${IMAGE_NAME}:${IMAGE_TAG} to ${DEPLOY_ENV}" \
+                        || echo "No changes to commit"
+                    git push https://x-access-token:${GIT_TOKEN}@${GITOPS_REPO} HEAD:main
+                '''
+            }
+        }
     }
 
     post {
