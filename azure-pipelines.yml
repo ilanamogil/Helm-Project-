@@ -1,14 +1,13 @@
 # Azure DevOps Pipeline (Exam Section 5.1)
 #
 # Mirrors the Jenkins pipeline: Linting + Security Scan run in parallel,
-# then the Docker image is built and pushed to Docker Hub.
+# then the Docker image is built and pushed to Docker Hub,
+# then the GitOps repo is updated so ArgoCD picks up the new tag.
 #
-# Credentials are stored securely as pipeline variables / a variable group:
+# Credentials stored as pipeline variables / a variable group:
 #   DOCKERHUB_USERNAME            (normal variable)
 #   DOCKERHUB_PASSWORD            (mark as SECRET)
-#
-# Secret variables are never printed; they are mapped into the build step's
-# environment and read from there.
+#   GIT_TOKEN                     (GitHub PAT with repo scope — mark as SECRET)
 
 trigger:
   branches:
@@ -63,3 +62,32 @@ stages:
             env:
               DOCKERHUB_USERNAME: $(DOCKERHUB_USERNAME)
               DOCKERHUB_PASSWORD: $(DOCKERHUB_PASSWORD)
+
+  - stage: UpdateGitOps
+    displayName: 'Update GitOps Repo (ArgoCD)'
+    dependsOn: BuildAndPush
+    variables:
+      DEPLOY_ENV: dev
+      GITOPS_REPO: github.com/ilanamogil/gitops-repo.git
+    jobs:
+      - job: BumpImageTag
+        displayName: 'Bump image tag in GitOps repo → ArgoCD syncs'
+        steps:
+          - script: |
+              git clone https://x-access-token:$(GIT_TOKEN)@$(GITOPS_REPO)
+              cd gitops-repo
+
+              VALUES="flask-aws-monitor/$(DEPLOY_ENV)/values.yaml"
+              echo "===== Bumping image tag in ${VALUES} to $(imageTag) ====="
+              sed -i "s|^  tag:.*|  tag: \"$(imageTag)\"|" "$VALUES"
+              grep -A1 "^image:" "$VALUES"
+
+              git config user.email "azure-pipelines@example.com"
+              git config user.name  "Azure Pipelines"
+              git add "$VALUES"
+              git commit -m "ci: deploy $(imageName):$(imageTag) to $(DEPLOY_ENV)" \
+                  || echo "No changes to commit"
+              git push https://x-access-token:$(GIT_TOKEN)@$(GITOPS_REPO) HEAD:main
+            displayName: 'Commit updated values.yaml to gitops-repo'
+            env:
+              GIT_TOKEN: $(GIT_TOKEN)
