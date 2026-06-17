@@ -10,6 +10,7 @@ pushed to Docker Hub. This is the non-Helm path; the Helm chart under
 |------------------|-----------------------------------------------------|
 | `deployment.yaml`| Deployment (2 replicas) running the app on port 5001.|
 | `service.yaml`   | `LoadBalancer` Service exposing port 5001.          |
+| `ingress.yaml`   | Ingress (nginx) routing `flask-monitor.local` → the Service. |
 
 ## Prerequisites
 
@@ -29,19 +30,24 @@ pushed to Docker Hub. This is the non-Helm path; the Helm chart under
 ```bash
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
+kubectl apply -f k8s/ingress.yaml
 
 # Watch the rollout
-kubectl get pods,svc -l app=flask-aws-monitor
+kubectl get pods,svc,ingress -l app=flask-aws-monitor
 ```
 
 ## Access
 
+**Via LoadBalancer** (cloud clusters):
 ```bash
-# Get the external IP / hostname of the LoadBalancer service
 kubectl get svc flask-aws-monitor
+# open http://<EXTERNAL-IP>:5001/
+```
 
-# Then open in a browser:
-# http://<EXTERNAL-IP>:5001/
+**Via Ingress** (requires nginx ingress controller):
+```bash
+# Add to /etc/hosts:  <ingress-controller-IP>  flask-monitor.local
+# Then open: http://flask-monitor.local/
 ```
 
 > If the image username differs from `ilanamogil`, update the `image:` field

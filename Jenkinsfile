@@ -27,7 +27,9 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git branch: 'main', url: 'https://github.com/ilanamogil/Helm-Project-.git'
+                // checkout scm uses the branch/commit that triggered this build
+                // (works for multibranch pipelines, PR builds, and manual triggers)
+                checkout scm
             }
         }
 
